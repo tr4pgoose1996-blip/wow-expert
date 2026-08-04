@@ -1,0 +1,156 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["backend/**", ".github/workflows/backend-ci.yml"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["backend/**", ".github/workflows/backend-ci.yml"]
+
+# A new push to the same branch cancels the previous, still-running job.
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  # Deterministic, non-secret values so the suite is reproducible in CI.
+  SECRET_KEY: ci-secret-key-at-least-32-characters-long-xx
+  ENVIRONMENT: test
+
+jobs:
+  lint:
+    name: Lint and type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra dev || uv pip install --system -e ".[dev]"
+
+      - name: Ruff (lint)
+        run: uv run ruff check app tests
+
+      - name: Ruff (format check)
+        # Advisory while the codebase converges on a single format; the
+        # lint gate above is the blocking one.
+        run: uv run ruff format --check app tests
+        continue-on-error: true
+
+      - name: mypy
+        run: uv run mypy app
+        continue-on-error: true
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: wowexpert
+          POSTGRES_PASSWORD: wowexpert
+          POSTGRES_DB: wowexpert_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wowexpert"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://wowexpert:wowexpert@localhost:5432/wowexpert_test
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Verify migrations apply cleanly
+        run: alembic upgrade head
+
+      - name: Verify migrations are reversible
+        run: |
+          alembic downgrade base
+          alembic upgrade head
+
+      - name: Check for un-migrated model changes
+        run: |
+          # Autogenerate must produce an empty diff: if a model changed
+          # without a migration, this fails the build.
+          alembic check
+
+      - name: Run tests
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: backend/coverage.xml
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: wow-expert-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test the image
+        run: |
+          # The container must boot and serve /health with no database
+          # present; readiness is checked separately in the test job.
+          docker run -d --name api \
+            -e SECRET_KEY="${{ env.SECRET_KEY }}" \
+            -e ENVIRONMENT=test \
+            -p 8000:8000 wow-expert-backend:ci
+
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8000/health > /dev/null; then
+              echo "Health check passed."
+              docker rm -f api
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Container failed to become healthy. Logs:"
+          docker logs api
+          exit 1

@@ -1,0 +1,42 @@
+# ── Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# ── Test / lint caches ───────────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.coverage.*
+cache/
+
+# ── Node ─────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-electron/
+*.tsbuildinfo
+
+# ── Environment / secrets (templates are fine, real files are not) ───────
+.env
+.env.*
+!.env.example
+
+# ── OS / editor ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── Local DB / runtime state ────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3

@@ -1,0 +1,88 @@
+# Local development stack: PostgreSQL with pgvector, Redis, and the API.
+#
+#   cp backend/.env.example backend/.env   # then fill in Battle.net secrets
+#   docker compose up --build
+
+name: wow-expert
+
+services:
+  postgres:
+    # pgvector image: the base Postgres plus the extension the knowledge
+    # engine requires. Drop-in compatible with the official image.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wowexpert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wowexpert}
+      POSTGRES_DB: ${POSTGRES_DB:-wowexpert}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # The service is only "up" once it can actually answer queries.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wowexpert} -d ${POSTGRES_DB:-wowexpert}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Runs migrations to completion, then exits. The API waits on it so the
+  # schema is never half-applied when the first request arrives.
+  migrate:
+    build:
+      context: ./backend
+      target: runtime
+    command: ["alembic", "upgrade", "head"]
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wowexpert}:${POSTGRES_PASSWORD:-wowexpert}@postgres:5432/${POSTGRES_DB:-wowexpert}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      target: runtime
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wowexpert}:${POSTGRES_PASSWORD:-wowexpert}@postgres:5432/${POSTGRES_DB:-wowexpert}
+      REDIS_URL: redis://redis:6379/0
+      BLIZZARD_REDIRECT_URI: http://localhost:8000/api/v1/blizzard/oauth/callback
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,25 @@
+# Build context exclusions: keep secrets and local cruft out of the image.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+*.egg-info/
+dist/
+build/
+
+# Never bake real credentials into a layer.
+.env
+.env.*
+!.env.example
+
+tests/
+.git/
+.gitignore
+Dockerfile
+.dockerignore

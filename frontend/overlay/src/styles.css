@@ -1,0 +1,172 @@
+/* Transparent overlay styling. The window background is transparent (set in
+   index.html and Electron). Widgets opt back into pointer events so the player
+   can still interact with them while clicks elsewhere fall through to the game. */
+
+:root {
+  --bg: rgba(18, 18, 23, 0.78);
+  --border: rgba(120, 130, 160, 0.35);
+  --accent: #ffd34d;
+  --boss: #ff5d5d;
+  --rare: #5dd0ff;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+}
+
+.overlay-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  width: 400px;
+  margin: 0 auto;
+  pointer-events: none; /* clicks fall through to the game */
+}
+
+/* Interactive widgets re-enable pointer events locally. */
+.widget,
+.status-bar {
+  pointer-events: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.widget-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.on {
+  background: #4ade80;
+}
+.dot.off {
+  background: #71717a;
+}
+
+/* Rotation */
+.rotation-hint {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+.rotation-foot {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Cooldowns */
+.cooldown-row {
+  display: grid;
+  grid-template-columns: 1fr 70px auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.cooldown-name {
+  font-size: 12px;
+  color: var(--text);
+}
+.cooldown-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cooldown-fill {
+  height: 100%;
+  background: var(--accent);
+}
+.cooldown-src {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Quests */
+.quest-row {
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.quest-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.quest-obj {
+  color: #d4d4d8;
+}
+.quest-progress,
+.quest-zone {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Alerts */
+.alert-zone {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.alert {
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  border-left: 3px solid transparent;
+}
+.alert.boss {
+  background: rgba(255, 93, 93, 0.14);
+  border-left-color: var(--boss);
+}
+.alert.rare {
+  background: rgba(93, 208, 255, 0.14);
+  border-left-color: var(--rare);
+}
+.alert-head {
+  font-weight: 700;
+  color: var(--text);
+}
+.alert-phase,
+.alert-mech,
+.alert-zone-name,
+.alert-pin {
+  color: #e4e4e7;
+  font-size: 11px;
+}
+.alert.sev-high {
+  box-shadow: 0 0 0 1px rgba(255, 93, 93, 0.4);
+}
+
+/* Waypoint */
+.waypoint .wp-label {
+  font-weight: 700;
+  color: var(--text);
+}
+.wp-note,
+.wp-pin {
+  color: var(--muted);
+  font-size: 11px;
+}
