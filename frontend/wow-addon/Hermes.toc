@@ -2,7 +2,7 @@
 ## Title: Hermes — WoW! Expert Game Master
 ## Notes: An AI-style Game Master coach for World of Warcraft. Mirrors the wow! expert backend: modular feature registry, a "Game Master" reasoning engine that explains WHY a recommendation is optimal, plus rotation, cooldown, boss/affix, quest, and collection advisors. Pairs with the wow! expert companion service (optional).
 ## Author: wow! expert team
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariables: HermesDB
 ## DefaultState: enabled
 ## LoadOnDemand: 0

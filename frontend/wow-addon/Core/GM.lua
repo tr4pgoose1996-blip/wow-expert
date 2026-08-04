@@ -70,6 +70,14 @@ function GM:inferIntent(text, profile)
     return scores
 end
 
+--- Safely call a WoW API that may not exist or may return nil on a loading
+--- screen. Returns the first return value, or `default` if the call fails.
+local function safeCall(fn, default)
+    local ok, v = pcall(fn)
+    if ok and v ~= nil then return v end
+    return default
+end
+
 --- Build the player's current context from live WoW state + saved profile.
 function GM:refreshContext()
     -- Live WoW calls can return nil (e.g. before PLAYER_ENTERING_WORLD fully
@@ -77,11 +85,11 @@ function GM:refreshContext()
     -- throws and breaks the whole plan.
     local ok, class = pcall(UnitClass, "player")
     local _, race = pcall(UnitRace, "player")
-    local level = (pcall(UnitLevel, "player") and select(1, pcall(UnitLevel, "player"))) or 0
+    local level = safeCall(function() return UnitLevel("player") end, 0)
     local ilvl = 0
     local okIlvl, avg = pcall(GetAverageItemLevel)
     if okIlvl and avg then ilvl = math.floor(select(2, avg) or 0) end
-    local zone = (pcall(GetRealZoneText) and select(1, pcall(GetRealZoneText))) or ""
+    local zone = safeCall(GetRealZoneText, "")
 
     -- Mythic+ rating lives deep in GetPlayerInfoByGUID's return tuple. The
     -- index has shifted across expansions, so we scan the returns for a number
@@ -148,6 +156,22 @@ function GM:plan(text)
     end)
 
     local ranked = self:rank(objectives)
+
+    -- First-run friendliness: if no module contributed (e.g. the player hasn't
+    -- set a profile yet), give an actionable "getting started" objective so
+    -- /hermes advise is never empty.
+    if #ranked == 0 then
+        table.insert(ranked, {
+            title = "Tell Hermes about you: /hermes profile class=<Class> spec=<Spec> content=<Raiding|PvP|Mythic+>",
+            priority = 5,
+            effortHours = 0.1,
+            source = "learn",
+            why = "Hermes reasons from your class, spec, and content focus. With that set, it ranks " ..
+                  "rotation, gear, collection, and progress goals by effort-vs-reward so you always " ..
+                  "know the most efficient next step.",
+            actions = { "Type /hermes profile class=Warrior spec=Fury content=Mythic+", "Then /hermes advise" },
+        })
+    end
 
     -- Build a plain-language explanation (the "WHY").
     local rationale = self:explain(ranked, intent, self.context)

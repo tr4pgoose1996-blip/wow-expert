@@ -3,7 +3,7 @@
 -- module registry, and exposes a slash command. All feature logic lives in
 -- Core/* and Modules/* and registers itself via the registry.
 
-local HERMES_VERSION = "0.1.1"
+local HERMES_VERSION = "0.2.0"
 
 -- The addon-global namespace (like the Python `app` package).
 Hermes = {}
@@ -63,7 +63,16 @@ function Hermes:OnDisable()
 end
 
 function Hermes:Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffHermes:|r " .. tostring(msg))
+    -- DEFAULT_CHAT_FRAME can be nil during early loading or on some clients;
+    -- fall back to the first available chat frame, then to print().
+    local frame = DEFAULT_CHAT_FRAME
+    if not frame then frame = _G["ChatFrame1"] end
+    local line = "|cff33ccffHermes:|r " .. tostring(msg)
+    if frame and frame.AddMessage then
+        frame:AddMessage(line)
+    else
+        print(line)
+    end
 end
 
 -- ── Slash command ──────────────────────────────────────────────────────────
