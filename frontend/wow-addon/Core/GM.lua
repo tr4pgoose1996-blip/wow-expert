@@ -39,8 +39,19 @@ function GM:inferIntent(text, profile)
 
     for kind, tokens in pairs(TOKEN_WEIGHTS) do
         for tok, w in pairs(tokens) do
-            local _, n = text:gsub(tok:lower(), tok:lower())
-            scores[kind] = scores[kind] + n * w
+            -- Count occurrences with plain (non-pattern) matching. Lua patterns
+            -- treat characters like '+', '.', '-' as metacharacters, and several
+            -- of our tokens ("m+", "mythic+") contain '+', so a naive gsub would
+            -- mis-count. The 4th arg `true` disables pattern matching.
+            local count = 0
+            local from = 1
+            while true do
+                local found = text:find(tok, from, true)
+                if not found then break end
+                count = count + 1
+                from = found + #tok
+            end
+            scores[kind] = scores[kind] + count * w
         end
     end
 
@@ -61,19 +72,39 @@ end
 
 --- Build the player's current context from live WoW state + saved profile.
 function GM:refreshContext()
-    local _, class = UnitClass("player")
-    local _, race = UnitRace("player")
-    local level = UnitLevel("player")
-    local ilvl = math.floor(select(2, GetAverageItemLevel()) or 0)
-    local zone = GetRealZoneText() or ""
+    -- Live WoW calls can return nil (e.g. before PLAYER_ENTERING_WORLD fully
+    -- resolves, or on a loading screen). Guard each so a missing value never
+    -- throws and breaks the whole plan.
+    local ok, class = pcall(UnitClass, "player")
+    local _, race = pcall(UnitRace, "player")
+    local level = (pcall(UnitLevel, "player") and select(1, pcall(UnitLevel, "player"))) or 0
+    local ilvl = 0
+    local okIlvl, avg = pcall(GetAverageItemLevel)
+    if okIlvl and avg then ilvl = math.floor(select(2, avg) or 0) end
+    local zone = (pcall(GetRealZoneText) and select(1, pcall(GetRealZoneText))) or ""
+
+    -- Mythic+ rating lives deep in GetPlayerInfoByGUID's return tuple. The
+    -- index has shifted across expansions, so we scan the returns for a number
+    -- in the plausible rating range instead of hard-coding a fragile index.
     local ranking = 0
-    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, mythicPlus = GetPlayerInfoByGUID(UnitGUID("player") or "")
-    ranking = mythicPlus or 0
+    local okGuid, guid = pcall(UnitGUID, "player")
+    if okGuid and guid then
+        local info = { pcall(GetPlayerInfoByGUID, guid) }
+        if info[1] then
+            for i = 2, #info do
+                local v = info[i]
+                if type(v) == "number" and v >= 0 and v <= 5000 then
+                    ranking = v
+                    break
+                end
+            end
+        end
+    end
 
     self.context = {
-        name = UnitName("player"),
-        class = class,
-        race = race,
+        name = (pcall(UnitName, "player") and select(1, pcall(UnitName, "player"))) or "hero",
+        class = (type(class) == "string") and class or nil,
+        race = (type(race) == "string") and race or nil,
         level = level,
         ilvl = ilvl,
         zone = zone,

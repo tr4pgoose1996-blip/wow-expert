@@ -3,7 +3,7 @@
 -- module registry, and exposes a slash command. All feature logic lives in
 -- Core/* and Modules/* and registers itself via the registry.
 
-local HERMES_VERSION = "0.1.0"
+local HERMES_VERSION = "0.1.1"
 
 -- The addon-global namespace (like the Python `app` package).
 Hermes = {}
@@ -76,6 +76,7 @@ SlashCmdList["HERMES"] = function(input)
     if cmd == "" or cmd == "help" then
         Hermes:Print("Commands:")
         Hermes:Print("  /hermes advise  — ask the Game Master what to do now")
+        Hermes:Print("  /hermes coach   — open the Game Master coach panel")
         Hermes:Print("  /hermes rotation — show your rotation advisor")
         Hermes:Print("  /hermes boss    — show boss/affix alerts")
         Hermes:Print("  /hermes quests  — show quest guidance")
@@ -89,6 +90,8 @@ SlashCmdList["HERMES"] = function(input)
         if Hermes.GM then Hermes.GM:advise(arg) end
         return
     end
+    if cmd == "coach" and Hermes.CoachFrame then Hermes.CoachFrame:Show(); return end
+
     if cmd == "rotation" and Hermes.Rotation then Hermes.Rotation:Show() return end
     if cmd == "boss" and Hermes.BossAlerts then Hermes.BossAlerts:Show() return end
     if cmd == "quests" and Hermes.Quests then Hermes.Quests:Show() return end
