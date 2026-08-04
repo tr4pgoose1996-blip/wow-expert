@@ -1,0 +1,88 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\..\FrameXML\UI.xsd">
+  <!-- The "Hermes says WHY" coaching panel. Mirrors the backend's explained
+       plan: a scrollable explanation plus a live cooldown line. -->
+  <Frame name="HermesCoachFrame" inherits="BackdropTemplate" parent="UIParent" hidden="true" movable="true" enableMouse="true">
+    <Size x="360" y="420" />
+    <Anchors>
+      <Anchor point="CENTER" />
+    </Anchors>
+    <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+      <BackgroundInsets>
+        <AbsInset left="11" right="12" top="12" bottom="11" />
+      </BackgroundInsets>
+      <TileSize val="32" />
+    </Backdrop>
+    <Frames>
+      <!-- Title bar (drag to move) -->
+      <Frame name="$parentTitleBar" inherits="BackdropTemplate">
+        <Size x="340" y="24" />
+        <Anchors>
+          <Anchor point="TOP" relativeKey="$parent" relativePoint="TOP" x="0" y="-8" />
+        </Anchors>
+        <Scripts>
+          <OnMouseDown>
+            HermesCoachFrame:StartMoving()
+          </OnMouseDown>
+          <OnMouseUp>
+            HermesCoachFrame:StopMovingOrSizing()
+          </OnMouseUp>
+        </Scripts>
+        <Frames>
+          <Button name="$parentClose" inherits="UIPanelCloseButton">
+            <Anchors>
+              <Anchor point="TOPRIGHT" relativeKey="$parent" relativePoint="TOPRIGHT" x="-2" y="-2" />
+            </Anchors>
+            <Scripts>
+              <OnClick>HermesCoachFrame:Hide()</OnClick>
+            </Scripts>
+          </Button>
+        </Frames>
+      </Frame>
+
+      <!-- Cooldown status line (updated live by Modules/Cooldowns.lua) -->
+      <Frame name="$parentCooldownRow" inherits="BackdropTemplate">
+        <Size x="340" y="20" />
+        <Anchors>
+          <Anchor point="TOP" relativeKey="$parentTitleBar" relativePoint="BOTTOM" x="0" y="-2" />
+        </Anchors>
+        <Layers>
+          <Layer level="ARTWORK">
+            <FontString name="$parentCooldownText" inherits="GameFontNormalSmall" justifyH="LEFT" text="">
+              <Anchors>
+                <Anchor point="LEFT" x="8" y="0" />
+              </Anchors>
+            </FontString>
+          </Layer>
+        </Layers>
+      </Frame>
+
+      <!-- Scrollable explanation (the WHY) -->
+      <ScrollFrame name="$parentScroll" inherits="UIPanelScrollFrameTemplate">
+        <Size x="330" y="320" />
+        <Anchors>
+          <Anchor point="TOP" relativeKey="$parentCooldownRow" relativePoint="BOTTOM" x="0" y="-4" />
+        </Anchors>
+        <ScrollChild>
+          <Frame name="$parentChild">
+            <Size x="310" y="320" />
+            <Layers>
+              <Layer level="ARTWORK">
+                <FontString name="$parentBody" inherits="GameFontHighlightSmall" justifyH="LEFT" justifyV="TOP" text="">
+                  <Size x="310" y="320" />
+                  <Anchors>
+                    <Anchor point="TOPLEFT" x="4" y="0" />
+                  </Anchors>
+                </FontString>
+              </Layer>
+            </Layers>
+          </Frame>
+        </ScrollChild>
+      </ScrollFrame>
+    </Frames>
+    <Scripts>
+      <OnLoad>
+        self:SetClampedToScreen(true)
+      </OnLoad>
+    </Scripts>
+  </Frame>
+</Ui>
