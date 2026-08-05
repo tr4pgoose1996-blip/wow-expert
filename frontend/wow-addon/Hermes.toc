@@ -1,0 +1,23 @@
+## Interface: 120007
+## Title: Hermes — WoW! Expert Game Master
+## Notes: An AI-style Game Master coach for World of Warcraft. Mirrors the wow! expert backend: modular feature registry, a "Game Master" reasoning engine that explains WHY a recommendation is optimal, plus rotation, cooldown, boss/affix, quest, and collection advisors. Pairs with the wow! expert companion service (optional).
+## Author: wow! expert team
+## Version: 0.2.0
+## SavedVariables: HermesDB
+## DefaultState: enabled
+## LoadOnDemand: 0
+## Dependencies:
+## OptionalDeps:
+
+# ── Load order matters in WoW: libraries/utilities first, then Core, then Modules, then UI ──
+Hermes.lua
+Core/Registry.lua
+Core/GM.lua
+Locales/enUS.lua
+Modules/Rotation.lua
+Modules/Cooldowns.lua
+Modules/BossAlerts.lua
+Modules/Quests.lua
+Modules/Collections.lua
+UI/CoachFrame.xml
+UI/CoachFrame.lua
