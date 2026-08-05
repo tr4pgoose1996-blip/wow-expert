@@ -83,8 +83,8 @@ function GM:refreshContext()
     -- Live WoW calls can return nil (e.g. before PLAYER_ENTERING_WORLD fully
     -- resolves, or on a loading screen). Guard each so a missing value never
     -- throws and breaks the whole plan.
-    local ok, class = pcall(UnitClass, "player")
-    local _, race = pcall(UnitRace, "player")
+    local class = safeCall(function() return select(2, UnitClass("player")) end, nil)
+    local race = safeCall(function() return UnitRace("player") end, nil)
     local level = safeCall(function() return UnitLevel("player") end, 0)
     local ilvl = 0
     local okIlvl, avg = pcall(GetAverageItemLevel)
@@ -110,7 +110,7 @@ function GM:refreshContext()
     end
 
     self.context = {
-        name = (pcall(UnitName, "player") and select(1, pcall(UnitName, "player"))) or "hero",
+        name = safeCall(function() return UnitName("player") end, "hero"),
         class = (type(class) == "string") and class or nil,
         race = (type(race) == "string") and race or nil,
         level = level,
